@@ -41,6 +41,8 @@ function initThree() {
 
   orbit = new MapControls(camera, canvas);
   orbit.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+  orbit.autoRotate = true;
+  orbit.autoRotateSpeed *= -1;
   orbit.dampingFactor = 0.05;
   orbit.screenSpacePanning = false;
   orbit.minDistance = 1;
@@ -63,10 +65,8 @@ function initRenderPipeline() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.5;
 
-  // General-use rendering pass for chaining
   const renderScene = new RenderPass(scene, camera);
 
-  // Rendering pass for bloom
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
     1.5,
@@ -77,18 +77,15 @@ function initRenderPipeline() {
   bloomPass.strength = BLOOM_PARAMS.bloomStrength;
   bloomPass.radius = BLOOM_PARAMS.bloomRadius;
 
-  // bloom composer
   bloomComposer = new EffectComposer(renderer);
   bloomComposer.renderToScreen = false;
   bloomComposer.addPass(renderScene);
   bloomComposer.addPass(bloomPass);
 
-  // overlay composer
   overlayComposer = new EffectComposer(renderer);
   overlayComposer.renderToScreen = false;
   overlayComposer.addPass(renderScene);
 
-  // Shader pass to combine base layer, bloom, and overlay layers
   const finalPass = new ShaderPass(
     new THREE.ShaderMaterial({
       uniforms: {
@@ -104,7 +101,6 @@ function initRenderPipeline() {
   );
   finalPass.needsSwap = true;
 
-  // base layer composer
   baseComposer = new EffectComposer(renderer);
   baseComposer.addPass(renderScene);
   baseComposer.addPass(finalPass);
@@ -124,21 +120,18 @@ function resizeRendererToDisplaySize(renderer) {
 async function render() {
   orbit.update();
 
-  // fix buffer size
   if (resizeRendererToDisplaySize(renderer)) {
     const canvas = renderer.domElement;
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
   }
 
-  // fix aspect ratio
   const canvas = renderer.domElement;
   camera.aspect = canvas.clientWidth / canvas.clientHeight;
   camera.updateProjectionMatrix();
 
   galaxy.updateScale(camera);
 
-  // Run each pass of the render pipeline
   renderPipeline();
 
   requestAnimationFrame(render);
@@ -159,8 +152,6 @@ function renderPipeline() {
 }
 
 initThree();
-let axes = new THREE.AxesHelper(5.0);
-scene.add(axes);
 
 let galaxy = new Galaxy(scene);
 
